@@ -120,7 +120,7 @@ export default function Challenges() {
               <label className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1 block">Points</label>
               <input
                 type="number"
-                min="1"
+                min="-9999"
                 max="9999"
                 value={form.points}
                 onChange={(e) => setForm({ ...form, points: parseInt(e.target.value) || 1 })}
@@ -189,7 +189,9 @@ export default function Challenges() {
                   )}
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-[#CF101A] font-bold text-sm">+{ch.points} pts</span>
+                      <span className={`font-bold text-sm ${ch.points < 0 ? 'text-red-400' : 'text-[#CF101A]'}`}>
+                        {ch.points > 0 ? '+' : ''}{ch.points} pts
+                      </span>
                       <span className="text-neutral-600 text-xs">· {ch.badge_name}</span>
                     </div>
                     <button
@@ -198,10 +200,12 @@ export default function Challenges() {
                       className={`text-xs font-semibold px-3.5 py-1.5 rounded-full transition-all active:scale-95 ${
                         done
                           ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default'
+                          : ch.points < 0
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                           : 'bg-[#CF101A] text-white active:bg-[#a80d15]'
                       }`}
                     >
-                      {isCompleting ? '...' : done ? '✓ Réalisé' : 'Réalisé !'}
+                      {isCompleting ? '...' : done ? '✓ Fait' : ch.points < 0 ? "Ça m'est arrivé" : 'Réalisé !'}
                     </button>
                   </div>
                 </div>

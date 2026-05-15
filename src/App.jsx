@@ -38,7 +38,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/nsm-malta">
+    <BrowserRouter>
       <UserProvider>
         <AppRoutes />
       </UserProvider>
