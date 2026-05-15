@@ -19,9 +19,11 @@ export function UserProvider({ children }) {
 
   const register = async (name) => {
     const trimmed = name.trim()
-    const { data, error } = await supabase
-      .from('users').insert({ name: trimmed }).select().single()
+    const { error } = await supabase.from('users').insert({ name: trimmed })
     if (error) throw error
+    const { data, error: fetchError } = await supabase
+      .from('users').select('*').eq('name', trimmed).single()
+    if (fetchError) throw fetchError
     localStorage.setItem('nsm_uid', data.id)
     setCurrentUser(data)
     return data

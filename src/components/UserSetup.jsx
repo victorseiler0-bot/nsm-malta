@@ -37,8 +37,9 @@ export default function UserSetup() {
     try {
       await register(name)
     } catch (err) {
+      console.error('register error:', JSON.stringify(err), err.message, err.code)
       if (err.code === '23505') setError('Ce nom est déjà pris — clique dessus pour te connecter.')
-      else setError('Erreur, réessaie.')
+      else setError(err.message || 'Erreur, réessaie.')
       setSubmitting(false)
     }
   }
