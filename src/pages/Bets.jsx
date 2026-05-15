@@ -187,6 +187,7 @@ export default function Bets() {
           const againstPool = participants.filter((p) => p.side === 'against').reduce((s, p) => s + p.points_wagered, 0)
           const isCreator = bet.creator_id === currentUser?.id
           const isOpen = bet.status === 'open'
+          const isPastDeadline = bet.deadline && new Date(bet.deadline) < new Date()
 
           return (
             <div key={bet.id} className="bg-[#141414] border border-[#1e1e1e] rounded-2xl p-4">
@@ -197,8 +198,8 @@ export default function Bets() {
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-neutral-600 text-xs">par {bet.users?.name}</span>
                     {bet.deadline && (
-                      <span className="text-neutral-600 text-xs">
-                        · jusqu'au {new Date(bet.deadline).toLocaleDateString('fr-FR')}
+                      <span className={`text-xs font-medium ${isPastDeadline && isOpen ? 'text-orange-400' : 'text-neutral-600'}`}>
+                        · {isPastDeadline ? '⏰ délai dépassé' : `jusqu'au ${new Date(bet.deadline).toLocaleDateString('fr-FR')}`}
                       </span>
                     )}
                   </div>
@@ -238,7 +239,7 @@ export default function Bets() {
               )}
 
               {/* Join panel */}
-              {isOpen && !myPart && currentUser && (
+              {isOpen && !myPart && currentUser && !isPastDeadline && (
                 joiningBet === bet.id ? (
                   <div className="space-y-2">
                     <div className="flex gap-2">
@@ -292,6 +293,13 @@ export default function Bets() {
               {myPart && isOpen && (
                 <div className="flex items-center gap-2 text-xs text-neutral-500 bg-[#1a1a1a] rounded-xl px-3 py-2">
                   <span>Tu as misé <span className={myPart.side === 'for' ? 'text-green-400' : 'text-red-400'}>{myPart.points_wagered} pts {myPart.side === 'for' ? 'pour' : 'contre'}</span></span>
+                </div>
+              )}
+
+              {/* Deadline passed but not resolved — show banner */}
+              {isOpen && isPastDeadline && !isCreator && !myPart && (
+                <div className="text-center text-xs text-orange-400/70 py-2">
+                  Délai dépassé — le créateur doit résoudre le pari
                 </div>
               )}
 

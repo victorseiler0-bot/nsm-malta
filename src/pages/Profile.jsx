@@ -27,28 +27,20 @@ export default function Profile() {
 
     if (comps) {
       const grouped = {}
-      comps.forEach((c) => {
+      comps.forEach(c => {
         const ch = c.challenges
         if (!ch) return
         const key = c.challenge_id
         if (!grouped[key]) {
-          grouped[key] = {
-            challenge_id: key,
-            badge_emoji: ch.badge_emoji,
-            badge_name: ch.badge_name,
-            title: ch.title,
-            points: ch.points,
-            count: 0,
-          }
+          grouped[key] = { challenge_id: key, badge_emoji: ch.badge_emoji, badge_name: ch.badge_name, title: ch.title, points: ch.points, count: 0 }
         }
         grouped[key].count++
       })
       setBadges(Object.values(grouped))
 
-      let betsWon = 0
-      let betsTotal = 0
+      let betsWon = 0, betsTotal = 0
       if (betsData) {
-        betsData.forEach((p) => {
+        betsData.forEach(p => {
           if (p.bets?.status === 'resolved') {
             betsTotal++
             if (p.points_result > p.points_wagered) betsWon++
@@ -68,14 +60,12 @@ export default function Profile() {
       <div className="bg-[#141414] border border-[#1e1e1e] rounded-2xl p-5 mb-5">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-[#CF101A]/20 border border-[#CF101A]/30 flex items-center justify-center">
-            <span className="text-2xl font-black text-[#CF101A]">
-              {currentUser.name.charAt(0).toUpperCase()}
-            </span>
+            <span className="text-2xl font-black text-[#CF101A]">{currentUser.name.charAt(0).toUpperCase()}</span>
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">{currentUser.name}</h2>
             <p className="text-neutral-500 text-sm">
-              Membre depuis {new Date(currentUser.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+              Depuis {new Date(currentUser.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
             </p>
           </div>
         </div>
@@ -90,9 +80,7 @@ export default function Profile() {
             <p className="text-neutral-600 text-[10px] uppercase tracking-wider mt-0.5">Défis</p>
           </div>
           <div className="bg-[#0a0a0a] rounded-xl p-3 text-center">
-            <p className="text-white text-xl font-black">
-              {stats.betsTotal > 0 ? `${stats.betsWon}/${stats.betsTotal}` : '—'}
-            </p>
+            <p className="text-white text-xl font-black">{stats.betsTotal > 0 ? `${stats.betsWon}/${stats.betsTotal}` : '—'}</p>
             <p className="text-neutral-600 text-[10px] uppercase tracking-wider mt-0.5">Paris</p>
           </div>
         </div>
@@ -101,31 +89,26 @@ export default function Profile() {
       {/* Badges */}
       <div>
         <h3 className="text-white font-bold text-base mb-3">
-          Badges
-          {badges.length > 0 && (
-            <span className="text-neutral-500 font-normal text-sm ml-2">{badges.length}</span>
-          )}
+          Badges {badges.length > 0 && <span className="text-neutral-500 font-normal text-sm">{badges.length}</span>}
         </h3>
 
         {loading ? (
           <div className="grid grid-cols-3 gap-2">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-24 bg-[#141414] rounded-2xl animate-pulse" />
-            ))}
+            {[...Array(6)].map((_, i) => <div key={i} className="h-28 bg-[#141414] rounded-2xl animate-pulse" />)}
           </div>
         ) : badges.length > 0 ? (
           <div className="grid grid-cols-3 gap-2">
-            {badges.map((b) => (
-              <div
-                key={b.challenge_id}
-                className="bg-[#141414] border border-[#1e1e1e] rounded-2xl p-3 flex flex-col items-center gap-1.5 relative"
-              >
+            {badges.map(b => (
+              <div key={b.challenge_id} className="bg-[#141414] border border-[#1e1e1e] rounded-2xl p-3 flex flex-col items-center gap-1 relative">
                 <span className="text-3xl">{b.badge_emoji}</span>
                 <p className="text-white text-xs font-semibold text-center leading-tight">{b.badge_name}</p>
-                <p className="text-neutral-600 text-[10px] text-center">+{b.points} pts</p>
+                <p className="text-neutral-600 text-[10px] text-center leading-tight line-clamp-2">{b.title}</p>
+                <p className={`text-[10px] font-medium ${b.points < 0 ? 'text-red-400' : 'text-[#CF101A]'}`}>
+                  {b.points > 0 ? '+' : ''}{b.points} pts
+                </p>
                 {b.count > 1 && (
-                  <span className="absolute top-2 right-2 bg-[#CF101A] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                    {b.count}
+                  <span className="absolute top-2 right-2 bg-[#CF101A] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                    ×{b.count}
                   </span>
                 )}
               </div>
