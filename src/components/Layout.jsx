@@ -48,10 +48,13 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
       <header className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur border-b border-[#1a1a1a] px-5 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => { localStorage.removeItem('nsm_uid'); window.location.reload() }}
+          className="flex items-center gap-1.5 active:opacity-60 transition-opacity"
+        >
           <span className="text-xl font-black text-white tracking-tight">NSM</span>
           <span className="w-1.5 h-1.5 rounded-full bg-[#CF101A]"></span>
-        </div>
+        </button>
         <span className="text-[#CF101A] text-xs font-medium tracking-widest uppercase">Malta</span>
       </header>
 

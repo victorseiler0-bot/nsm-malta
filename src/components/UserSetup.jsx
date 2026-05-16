@@ -11,22 +11,29 @@ export default function UserSetup() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [loggingIn, setLoggingIn] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [deleting, setDeleting] = useState(null)
 
   useEffect(() => {
-    supabase
-      .from('users')
-      .select('id, name, total_points')
-      .order('total_points', { ascending: false })
-      .then(({ data }) => {
-        if (data) setUsers(data)
-        setLoadingUsers(false)
-      })
+    supabase.from('users').select('id, name, total_points').order('total_points', { ascending: false })
+      .then(({ data }) => { if (data) setUsers(data); setLoadingUsers(false) })
   }, [])
 
-  const loginAs = async (user) => {
+  const loginAs = (user) => {
     setLoggingIn(user.id)
     localStorage.setItem('nsm_uid', user.id)
     window.location.reload()
+  }
+
+  const deleteUser = async (user) => {
+    setDeleting(user.id)
+    try {
+      await supabase.from('users').delete().eq('id', user.id)
+      setUsers(prev => prev.filter(u => u.id !== user.id))
+      setConfirmDelete(null)
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const handleCreate = async (e) => {
@@ -37,7 +44,6 @@ export default function UserSetup() {
     try {
       await register(name)
     } catch (err) {
-      console.error('register error:', JSON.stringify(err), err.message, err.code)
       if (err.code === '23505') setError('Ce nom est déjà pris — clique dessus pour te connecter.')
       else setError(err.message || 'Erreur, réessaie.')
       setSubmitting(false)
@@ -46,7 +52,6 @@ export default function UserSetup() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
-      {/* Header */}
       <div className="pt-14 pb-8 px-6 text-center">
         <div className="inline-flex items-center gap-1.5 mb-2">
           <span className="text-5xl font-black tracking-tight text-white">NSM</span>
@@ -57,83 +62,86 @@ export default function UserSetup() {
       </div>
 
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
-        {/* Existing users */}
         {loadingUsers ? (
           <div className="space-y-2">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-[#141414] rounded-2xl animate-pulse" />
-            ))}
+            {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-[#141414] rounded-2xl animate-pulse" />)}
           </div>
         ) : (
           <div className="space-y-2 mb-6">
-            {users.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => loginAs(u)}
-                disabled={loggingIn === u.id}
-                className="w-full flex items-center justify-between bg-[#141414] border border-[#1e1e1e] rounded-2xl px-4 py-4 active:scale-98 transition-all active:bg-[#1e1e1e] group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#CF101A]/15 border border-[#CF101A]/20 flex items-center justify-center">
-                    <span className="text-[#CF101A] font-black text-base">
-                      {u.name.charAt(0).toUpperCase()}
+            {users.map(u => (
+              <div key={u.id} className="flex items-center gap-2">
+                <button
+                  onClick={() => loginAs(u)}
+                  disabled={loggingIn === u.id}
+                  className="flex-1 flex items-center justify-between bg-[#141414] border border-[#1e1e1e] rounded-2xl px-4 py-4 active:bg-[#1e1e1e] transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#CF101A]/15 border border-[#CF101A]/20 flex items-center justify-center">
+                      <span className="text-[#CF101A] font-black text-base">{u.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <span className="text-white font-semibold text-base">
+                      {loggingIn === u.id ? 'Connexion...' : u.name}
                     </span>
                   </div>
-                  <span className="text-white font-semibold text-base">
-                    {loggingIn === u.id ? 'Connexion...' : u.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-neutral-500 text-sm font-medium">{u.total_points} pts</span>
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-neutral-700 group-active:text-neutral-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </div>
-              </button>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${u.total_points < 0 ? 'text-red-400' : 'text-neutral-500'}`}>{u.total_points} pts</span>
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setConfirmDelete(u)}
+                  className="w-10 h-10 rounded-xl bg-[#141414] border border-[#1e1e1e] flex items-center justify-center text-neutral-700 hover:text-red-400 hover:border-red-500/30 active:scale-90 transition-all flex-shrink-0"
+                >
+                  🗑️
+                </button>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Create new */}
         {!showNew ? (
-          <button
-            onClick={() => setShowNew(true)}
-            className="w-full py-4 border border-dashed border-[#2a2a2a] rounded-2xl text-neutral-500 text-sm font-medium hover:border-[#CF101A]/40 hover:text-neutral-400 transition-all active:scale-98"
-          >
+          <button onClick={() => setShowNew(true)}
+            className="w-full py-4 border border-dashed border-[#2a2a2a] rounded-2xl text-neutral-500 text-sm font-medium hover:border-[#CF101A]/40 hover:text-neutral-400 transition-all">
             + Nouveau compte
           </button>
         ) : (
           <form onSubmit={handleCreate} className="bg-[#141414] border border-[#252525] rounded-2xl p-4 space-y-3">
             <p className="text-white font-semibold text-sm">Nouveau compte</p>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ton prénom..."
-              maxLength={20}
-              autoFocus
-              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white text-base placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A] transition-colors"
-            />
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ton prénom..." maxLength={20} autoFocus
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white text-base placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A] transition-colors" />
             {error && <p className="text-red-400 text-xs">{error}</p>}
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => { setShowNew(false); setError(''); setName('') }}
-                className="flex-1 py-3 bg-[#1a1a1a] text-neutral-400 font-medium rounded-xl text-sm"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={!name.trim() || submitting}
-                className="flex-1 py-3 bg-[#CF101A] text-white font-semibold rounded-xl text-sm disabled:opacity-40 active:scale-95 transition-all"
-              >
+              <button type="button" onClick={() => { setShowNew(false); setError(''); setName('') }}
+                className="flex-1 py-3 bg-[#1a1a1a] text-neutral-400 font-medium rounded-xl text-sm">Annuler</button>
+              <button type="submit" disabled={!name.trim() || submitting}
+                className="flex-1 py-3 bg-[#CF101A] text-white font-semibold rounded-xl text-sm disabled:opacity-40 active:scale-95 transition-all">
                 {submitting ? '...' : 'Créer'}
               </button>
             </div>
           </form>
         )}
       </div>
+
+      {/* Confirm delete modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-6"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null) }}>
+          <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <div>
+              <p className="text-white font-bold text-base">Supprimer {confirmDelete.name} ?</p>
+              <p className="text-neutral-500 text-sm mt-1">Tous ses défis, paris et points seront effacés. Irréversible.</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-3 bg-[#1a1a1a] text-neutral-400 font-medium rounded-xl text-sm">Annuler</button>
+              <button onClick={() => deleteUser(confirmDelete)} disabled={deleting === confirmDelete.id}
+                className="flex-1 py-3 bg-red-500/90 text-white font-semibold rounded-xl text-sm disabled:opacity-40 active:scale-95 transition-all">
+                {deleting === confirmDelete.id ? '...' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

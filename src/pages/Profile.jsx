@@ -7,6 +7,20 @@ export default function Profile() {
   const [badges, setBadges] = useState([])
   const [stats, setStats] = useState({ completions: 0, betsWon: 0, betsTotal: 0 })
   const [loading, setLoading] = useState(true)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const deleteSelf = async () => {
+    setDeleting(true)
+    try {
+      await supabase.from('users').delete().eq('id', currentUser.id)
+      localStorage.removeItem('nsm_uid')
+      window.location.reload()
+    } catch {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
 
   useEffect(() => {
     if (!currentUser) return
@@ -118,6 +132,28 @@ export default function Profile() {
           <div className="text-center py-12 text-neutral-600">
             <div className="text-4xl mb-3">🏅</div>
             <p>Complète des défis pour gagner des badges !</p>
+          </div>
+        )}
+      </div>
+
+      {/* Delete account */}
+      <div className="mt-6">
+        {!showDeleteConfirm ? (
+          <button onClick={() => setShowDeleteConfirm(true)}
+            className="w-full py-3 border border-red-500/20 text-red-500/70 text-sm font-medium rounded-xl active:scale-95 transition-all hover:border-red-500/40 hover:text-red-400">
+            Supprimer mon compte
+          </button>
+        ) : (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 space-y-3">
+            <p className="text-red-400 font-semibold text-sm text-center">Supprimer ton compte ?</p>
+            <p className="text-neutral-500 text-xs text-center">Tous tes points, badges et paris seront effacés. Irréversible.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2.5 bg-[#1a1a1a] text-neutral-400 text-sm font-medium rounded-xl">Annuler</button>
+              <button onClick={deleteSelf} disabled={deleting}
+                className="flex-1 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-xl disabled:opacity-40 active:scale-95 transition-all">
+                {deleting ? '...' : 'Supprimer'}
+              </button>
+            </div>
           </div>
         )}
       </div>
