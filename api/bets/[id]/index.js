@@ -1,4 +1,4 @@
-import { withDB, now, send } from '../_lib/store.js'
+import { withDB, now, send } from '../../_lib/store.js'
 
 function withJoins(bet, data, userById) {
   const participants = data.bet_participants
