@@ -38,9 +38,10 @@ async function handler(req, res) {
     } else if (action === 'set_cote') {
       const cote = Number(req.body.cote)
       const side = req.body.side
-      if (!(cote > 1) || (side !== 'for' && side !== 'against')) { notFound = true; return }
+      if (!(cote > 1) || !['for', 'against', 'null'].includes(side)) { notFound = true; return }
       if (side === 'for') bet.cote_for = cote
-      else bet.cote_against = cote
+      else if (side === 'against') bet.cote_against = cote
+      else bet.cote_null = cote
     } else if (action === 'close') {
       bet.status = 'closed'
     } else if (action === 'resolve') {
@@ -48,11 +49,12 @@ async function handler(req, res) {
       const participants = data.bet_participants.filter((p) => p.bet_id === betId)
       const coteFor = bet.cote_for || 2
       const coteAgainst = bet.cote_against || 2
+      const coteNull = bet.cote_null || 2
 
       for (const p of participants) {
         let payout = 0
         if (outcome === 'null') {
-          payout = p.points_wagered
+          payout = Math.floor(p.points_wagered * coteNull)
         } else {
           const won = (outcome === 'win' && p.side === 'for') || (outcome === 'lose' && p.side === 'against')
           if (won) payout = Math.floor(p.points_wagered * (p.side === 'for' ? coteFor : coteAgainst))

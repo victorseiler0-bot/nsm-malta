@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 
-const RESULT_LABEL = { win: 'Réussi ✓', lose: 'Raté ✗', null: 'Nul' }
+const RESULT_LABEL = { win: 'Choix 1 ✓', lose: 'Choix 2 ✓', null: 'Nul' }
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -66,7 +66,7 @@ export default function History() {
                   <div className="mt-2 space-y-1">
                     {e.participants.map((p, j) => (
                       <div key={j} className="flex items-center justify-between text-xs">
-                        <span className="text-neutral-400">{p.user_name} ({p.side === 'for' ? 'pour' : 'contre'})</span>
+                        <span className="text-neutral-400">{p.user_name} ({p.side === 'for' ? 'Choix 1' : 'Choix 2'})</span>
                         <span className={p.points_result > p.points_wagered ? 'text-green-400' : p.points_result > 0 ? 'text-neutral-400' : 'text-red-400'}>
                           {p.points_result > 0 ? `+${p.points_result}` : `-${p.points_wagered}`}
                         </span>
