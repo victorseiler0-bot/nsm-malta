@@ -9,7 +9,7 @@ function emptyDB() {
 }
 
 export async function readDB() {
-  const result = await get(DB_PATH, { access: 'private' })
+  const result = await get(DB_PATH, { access: 'private', useCache: false })
   if (!result) return { data: emptyDB(), etag: null }
   const raw = await text(result.stream)
   return { data: JSON.parse(raw), etag: result.blob.etag }
