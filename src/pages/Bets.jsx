@@ -5,12 +5,14 @@ import { useUser } from '../contexts/UserContext'
 const STATUS_LABEL = { open: 'Ouvert', closed: 'Mises fermées', resolved: 'Terminé', cancelled: 'Annulé' }
 const STATUS_COLOR = { open: 'text-green-400', closed: 'text-orange-400', resolved: 'text-neutral-400', cancelled: 'text-neutral-600' }
 
+const emptyForm = { title: '', description: '', choice1_label: '', choice2_label: '', cote_for: 2, cote_against: 2, cote_null: 2 }
+
 export default function Bets() {
   const { currentUser, refresh } = useUser()
   const [bets, setBets] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', cote_for: 2, cote_against: 2, cote_null: 2 })
+  const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
   const [joiningBet, setJoiningBet] = useState(null)
   const [joinData, setJoinData] = useState({ side: 'for', amount: 10 })
@@ -51,12 +53,14 @@ export default function Bets() {
         title: form.title.trim(),
         description: form.description.trim() || null,
         creator_id: currentUser.id,
+        choice1_label: form.choice1_label.trim() || null,
+        choice2_label: form.choice2_label.trim() || null,
         cote_for: Number(form.cote_for) || 2,
         cote_against: Number(form.cote_against) || 2,
         cote_null: Number(form.cote_null) || 2,
       })
       setBets(prev => [data, ...prev])
-      setForm({ title: '', description: '', cote_for: 2, cote_against: 2, cote_null: 2 })
+      setForm(emptyForm)
       setShowForm(false)
     } finally { setSubmitting(false) }
   }
@@ -104,7 +108,13 @@ export default function Bets() {
   const saveEdit = async (id) => {
     setSaving(true)
     try {
-      await api.patch(`/bets/${id}`, { action: 'edit', title: editForm.title, description: editForm.description || null })
+      await api.patch(`/bets/${id}`, {
+        action: 'edit',
+        title: editForm.title,
+        description: editForm.description || null,
+        choice1_label: editForm.choice1_label,
+        choice2_label: editForm.choice2_label,
+      })
       setBets(prev => prev.map(b => b.id === id ? { ...b, ...editForm } : b))
       setEditingId(null)
     } finally { setSaving(false) }
@@ -128,21 +138,23 @@ export default function Bets() {
       {showForm && (
         <form onSubmit={createBet} className="bg-[#141414] border border-[#252525] rounded-2xl p-4 mb-5 space-y-3">
           <p className="text-white font-semibold text-sm">Nouveau pari</p>
-          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Je pécho ce soir..." className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
+          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Titre du pari (ex: Soirée ce soir)" className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
           <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Conditions, précisions..." className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-green-600 mb-1 block">Cote 1</label>
-              <input type="number" min="1.1" step="0.1" value={form.cote_for} onChange={e => setForm({ ...form, cote_for: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-2 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
+              <label className="text-[10px] uppercase tracking-wider text-green-600 mb-1 block">Choix 1</label>
+              <input value={form.choice1_label} onChange={e => setForm({ ...form, choice1_label: e.target.value })} placeholder="Je pécho ce soir" className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-2 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
+              <input type="number" min="1.1" step="0.1" value={form.cote_for} onChange={e => setForm({ ...form, cote_for: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-2 py-2 mt-1.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-red-500 mb-1 block">Cote 2</label>
-              <input type="number" min="1.1" step="0.1" value={form.cote_against} onChange={e => setForm({ ...form, cote_against: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-2 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
+              <label className="text-[10px] uppercase tracking-wider text-red-500 mb-1 block">Choix 2</label>
+              <input value={form.choice2_label} onChange={e => setForm({ ...form, choice2_label: e.target.value })} placeholder="Je pécho pas" className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-2 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
+              <input type="number" min="1.1" step="0.1" value={form.cote_against} onChange={e => setForm({ ...form, cote_against: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-2 py-2 mt-1.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
             </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1 block">Cote nul</label>
-              <input type="number" min="1.1" step="0.1" value={form.cote_null} onChange={e => setForm({ ...form, cote_null: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-2 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
-            </div>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1 block">Cote nul</label>
+            <input type="number" min="1.1" step="0.1" value={form.cote_null} onChange={e => setForm({ ...form, cote_null: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
           </div>
           <button type="submit" disabled={submitting || !form.title.trim()} className="w-full bg-[#CF101A] text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-40 active:scale-95 transition-all">
             {submitting ? 'Création...' : 'Lancer le pari'}
@@ -162,10 +174,13 @@ export default function Bets() {
           const isResolved = bet.status === 'resolved'
           const canJoin = (isOpen || isClosed) && !myPart && currentUser && isOpen
           const isEditing = editingId === bet.id
+          const c1 = bet.choice1_label || 'Choix 1'
+          const c2 = bet.choice2_label || 'Choix 2'
 
-          const CoteBox = ({ side, label, pool, colorClasses, style }) => (
+          const CoteBox = ({ side, tag, choiceLabel, pool, colorClasses, style }) => (
             <div className={`flex-1 rounded-xl p-2.5 text-center ${colorClasses || ''}`} style={style}>
-              <p className="text-xs font-bold text-white mb-1">{label}</p>
+              <p className="text-[9px] uppercase tracking-wider opacity-60">{tag}</p>
+              <p className="text-xs font-bold text-white mb-1 leading-tight">{choiceLabel}</p>
               <p className="text-[10px] uppercase tracking-wider opacity-70 mb-1">{pool} pts misés</p>
               {editingCote?.betId === bet.id && editingCote?.side === side ? (
                 <div className="flex items-center justify-center gap-1">
@@ -195,6 +210,12 @@ export default function Bets() {
                     className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#CF101A]" placeholder="Titre" />
                   <input value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                     className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#CF101A]" placeholder="Description" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input value={editForm.choice1_label || ''} onChange={e => setEditForm({ ...editForm, choice1_label: e.target.value })}
+                      className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#CF101A]" placeholder="Choix 1" />
+                    <input value={editForm.choice2_label || ''} onChange={e => setEditForm({ ...editForm, choice2_label: e.target.value })}
+                      className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#CF101A]" placeholder="Choix 2" />
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => setEditingId(null)} className="flex-1 py-2 bg-[#1a1a1a] text-neutral-400 text-sm rounded-xl">Annuler</button>
                     <button onClick={() => saveEdit(bet.id)} disabled={saving} className="flex-1 py-2 bg-[#CF101A] text-white text-sm font-semibold rounded-xl disabled:opacity-40">{saving ? '...' : 'Enregistrer'}</button>
@@ -210,7 +231,7 @@ export default function Bets() {
                   <div className="flex items-center gap-1">
                     {isCreator && !isResolved && (
                       <>
-                        <button onClick={() => { setEditingId(bet.id); setEditForm({ title: bet.title, description: bet.description || '' }) }}
+                        <button onClick={() => { setEditingId(bet.id); setEditForm({ title: bet.title, description: bet.description || '', choice1_label: bet.choice1_label || '', choice2_label: bet.choice2_label || '' }) }}
                           className="text-neutral-600 hover:text-neutral-400 text-sm p-1 transition-colors">✏️</button>
                         <button onClick={() => deleteBet(bet)} disabled={deletingId === bet.id}
                           className="text-neutral-600 hover:text-red-400 text-sm p-1 transition-colors disabled:opacity-40">🗑️</button>
@@ -223,9 +244,9 @@ export default function Bets() {
 
               {/* Choix 1 / Choix 2 with their cotes */}
               <div className="flex gap-2 mb-2">
-                <CoteBox side="for" label="Choix 1" pool={forPool}
+                <CoteBox side="for" tag="Choix 1" choiceLabel={c1} pool={forPool}
                   colorClasses="bg-green-500/10 border border-green-500/20 text-green-400" />
-                <CoteBox side="against" label="Choix 2" pool={againstPool}
+                <CoteBox side="against" tag="Choix 2" choiceLabel={c2} pool={againstPool}
                   style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgb(248,113,113)' }} />
               </div>
 
@@ -255,7 +276,7 @@ export default function Bets() {
                     <div key={p.id} className="flex items-center justify-between text-xs">
                       <span className="text-neutral-400">{p.users?.name}</span>
                       <span className={p.side === 'for' ? 'text-green-400' : 'text-red-400'}>
-                        {p.side === 'for' ? 'Choix 1' : 'Choix 2'} · {p.points_wagered} pts
+                        {p.side === 'for' ? c1 : c2} · {p.points_wagered} pts
                         {bet.status === 'resolved' && p.points_result > 0 && <span className="text-neutral-500"> → +{p.points_result}</span>}
                       </span>
                     </div>
@@ -269,9 +290,9 @@ export default function Bets() {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <button onClick={() => setJoinData({ ...joinData, side: 'for' })}
-                        className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${joinData.side === 'for' ? 'bg-green-500 text-white' : 'bg-[#1a1a1a] text-neutral-400'}`}>Choix 1 ×{bet.cote_for || 2}</button>
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${joinData.side === 'for' ? 'bg-green-500 text-white' : 'bg-[#1a1a1a] text-neutral-400'}`}>{c1} ×{bet.cote_for || 2}</button>
                       <button onClick={() => setJoinData({ ...joinData, side: 'against' })}
-                        className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${joinData.side === 'against' ? 'bg-red-500 text-white' : 'bg-[#1a1a1a] text-neutral-400'}`}>Choix 2 ×{bet.cote_against || 2}</button>
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${joinData.side === 'against' ? 'bg-red-500 text-white' : 'bg-[#1a1a1a] text-neutral-400'}`}>{c2} ×{bet.cote_against || 2}</button>
                     </div>
                     <div className="flex gap-2">
                       <input type="number" min="1" max={currentUser.total_points} value={joinData.amount}
@@ -292,7 +313,7 @@ export default function Bets() {
               {/* My participation badge */}
               {myPart && (isOpen || isClosed) && (
                 <div className="flex items-center gap-2 text-xs text-neutral-500 bg-[#1a1a1a] rounded-xl px-3 py-2">
-                  Tu as misé <span className={myPart.side === 'for' ? 'text-green-400' : 'text-red-400'}>{myPart.points_wagered} pts sur {myPart.side === 'for' ? 'Choix 1' : 'Choix 2'}</span>
+                  Tu as misé <span className={myPart.side === 'for' ? 'text-green-400' : 'text-red-400'}>{myPart.points_wagered} pts sur {myPart.side === 'for' ? c1 : c2}</span>
                 </div>
               )}
 
@@ -306,8 +327,8 @@ export default function Bets() {
                     </button>
                   )}
                   <div className="flex gap-2">
-                    <button onClick={() => resolveBet(bet, 'win')} className="flex-1 py-2 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-semibold rounded-xl active:scale-95">Choix 1 a gagné</button>
-                    <button onClick={() => resolveBet(bet, 'lose')} className="flex-1 py-2 rounded-xl text-xs font-semibold active:scale-95" style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',color:'rgb(248,113,113)'}}>Choix 2 a gagné</button>
+                    <button onClick={() => resolveBet(bet, 'win')} className="flex-1 py-2 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-semibold rounded-xl active:scale-95">{c1} ✓</button>
+                    <button onClick={() => resolveBet(bet, 'lose')} className="flex-1 py-2 rounded-xl text-xs font-semibold active:scale-95" style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',color:'rgb(248,113,113)'}}>{c2} ✓</button>
                     <button onClick={() => resolveBet(bet, 'null')} className="py-2 px-3 bg-[#1a1a1a] border border-[#2a2a2a] text-neutral-500 text-xs font-semibold rounded-xl active:scale-95">Nul</button>
                   </div>
                 </div>
@@ -316,7 +337,7 @@ export default function Bets() {
               {isResolved && (
                 <div className="mt-2 text-center text-xs text-neutral-600">
                   Résultat : <span className={bet.result === 'win' ? 'text-green-400' : bet.result === 'lose' ? 'text-red-400' : 'text-neutral-400'}>
-                    {bet.result === 'win' ? 'Choix 1 ✓' : bet.result === 'lose' ? 'Choix 2 ✓' : 'Nul'}
+                    {bet.result === 'win' ? `${c1} ✓` : bet.result === 'lose' ? `${c2} ✓` : 'Nul'}
                   </span>
                 </div>
               )}

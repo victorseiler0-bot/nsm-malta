@@ -32,9 +32,11 @@ async function handler(req, res) {
     if (!bet) { notFound = true; return }
 
     if (action === 'edit') {
-      const { title, description } = req.body
+      const { title, description, choice1_label, choice2_label } = req.body
       if (title !== undefined) bet.title = title
       if (description !== undefined) bet.description = description
+      if (choice1_label !== undefined) bet.choice1_label = choice1_label?.trim() || 'Choix 1'
+      if (choice2_label !== undefined) bet.choice2_label = choice2_label?.trim() || 'Choix 2'
     } else if (action === 'set_cote') {
       const cote = Number(req.body.cote)
       const side = req.body.side
