@@ -18,7 +18,11 @@ export default function Challenges() {
   const [submitting, setSubmitting] = useState(false)
   const [myCompletionCounts, setMyCompletionCounts] = useState({})
 
-  useEffect(() => { fetchAll() }, [currentUser])
+  useEffect(() => {
+    fetchAll()
+    const interval = setInterval(fetchAll, 20000)
+    return () => clearInterval(interval)
+  }, [currentUser])
 
   const fetchAll = async () => {
     const chs = await api.get(`/challenges?user_id=${currentUser?.id || ''}`)

@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Challenges from './pages/Challenges'
 import Bets from './pages/Bets'
 import Profile from './pages/Profile'
+import History from './pages/History'
 
 function AppRoutes() {
   const { currentUser, loading } = useUser()
@@ -30,6 +31,7 @@ function AppRoutes() {
         <Route path="/defis" element={<Challenges />} />
         <Route path="/paris" element={<Bets />} />
         <Route path="/profil" element={<Profile />} />
+        <Route path="/historique" element={<History />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

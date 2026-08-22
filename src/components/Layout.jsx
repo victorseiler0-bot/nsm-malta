@@ -31,6 +31,16 @@ const tabs = [
     ),
   },
   {
+    to: '/historique',
+    label: 'Historique',
+    icon: (active) => (
+      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" stroke={active ? '#CF101A' : '#666'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="12 7 12 12 15.5 14" />
+      </svg>
+    ),
+  },
+  {
     to: '/profil',
     label: 'Profil',
     icon: (active) => (

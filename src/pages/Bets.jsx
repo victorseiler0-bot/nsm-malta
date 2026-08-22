@@ -10,7 +10,7 @@ export default function Bets() {
   const [bets, setBets] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', deadline: '' })
+  const [form, setForm] = useState({ title: '', description: '', deadline: '', cote: 2 })
   const [submitting, setSubmitting] = useState(false)
   const [joiningBet, setJoiningBet] = useState(null)
   const [joinData, setJoinData] = useState({ side: 'for', amount: 10 })
@@ -18,8 +18,15 @@ export default function Bets() {
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [editingCoteId, setEditingCoteId] = useState(null)
+  const [coteValue, setCoteValue] = useState(2)
+  const [deletingId, setDeletingId] = useState(null)
 
-  useEffect(() => { fetchAll() }, [currentUser])
+  useEffect(() => {
+    fetchAll()
+    const interval = setInterval(fetchAll, 20000)
+    return () => clearInterval(interval)
+  }, [currentUser])
 
   const fetchAll = async () => {
     const betsData = await api.get('/bets')
@@ -41,12 +48,28 @@ export default function Bets() {
     setSubmitting(true)
     try {
       const data = await api.post('/bets', {
-        title: form.title.trim(), description: form.description.trim() || null, creator_id: currentUser.id, deadline: form.deadline || null,
+        title: form.title.trim(), description: form.description.trim() || null, creator_id: currentUser.id, deadline: form.deadline || null, cote: Number(form.cote) || 2,
       })
       setBets(prev => [data, ...prev])
-      setForm({ title: '', description: '', deadline: '' })
+      setForm({ title: '', description: '', deadline: '', cote: 2 })
       setShowForm(false)
     } finally { setSubmitting(false) }
+  }
+
+  const saveCote = async (bet) => {
+    const cote = Number(coteValue)
+    if (!(cote > 1)) return
+    await api.patch(`/bets/${bet.id}`, { action: 'set_cote', cote })
+    setBets(prev => prev.map(b => b.id === bet.id ? { ...b, cote } : b))
+    setEditingCoteId(null)
+  }
+
+  const deleteBet = async (bet) => {
+    setDeletingId(bet.id)
+    try {
+      await api.del(`/bets/${bet.id}`)
+      setBets(prev => prev.filter(b => b.id !== bet.id))
+    } finally { setDeletingId(null) }
   }
 
   const joinBet = async (bet) => {
@@ -100,9 +123,15 @@ export default function Bets() {
           <p className="text-white font-semibold text-sm">Nouveau pari</p>
           <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Je vais courir 10km cette semaine..." className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
           <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Conditions, précisions..." className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1 block">Date limite (optionnel)</label>
-            <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1 block">Date limite (optionnel)</label>
+              <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1 block">Cote</label>
+              <input type="number" min="1.1" step="0.1" value={form.cote} onChange={e => setForm({ ...form, cote: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
+            </div>
           </div>
           <button type="submit" disabled={submitting || !form.title.trim()} className="w-full bg-[#CF101A] text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-40 active:scale-95 transition-all">
             {submitting ? 'Création...' : 'Lancer le pari'}
@@ -158,13 +187,37 @@ export default function Bets() {
                   </div>
                   <div className="flex items-center gap-1">
                     {isCreator && !isResolved && (
-                      <button onClick={() => { setEditingId(bet.id); setEditForm({ title: bet.title, description: bet.description || '', deadline: bet.deadline ? bet.deadline.split('T')[0] : '' }) }}
-                        className="text-neutral-600 hover:text-neutral-400 text-sm p-1 transition-colors">✏️</button>
+                      <>
+                        <button onClick={() => { setEditingId(bet.id); setEditForm({ title: bet.title, description: bet.description || '', deadline: bet.deadline ? bet.deadline.split('T')[0] : '' }) }}
+                          className="text-neutral-600 hover:text-neutral-400 text-sm p-1 transition-colors">✏️</button>
+                        <button onClick={() => deleteBet(bet)} disabled={deletingId === bet.id}
+                          className="text-neutral-600 hover:text-red-400 text-sm p-1 transition-colors disabled:opacity-40">🗑️</button>
+                      </>
                     )}
                     <span className={`text-xs font-semibold ${STATUS_COLOR[bet.status]}`}>{STATUS_LABEL[bet.status]}</span>
                   </div>
                 </div>
               )}
+
+              {/* Cote */}
+              <div className="mb-3">
+                {editingCoteId === bet.id ? (
+                  <div className="flex items-center gap-2">
+                    <input type="number" min="1.1" step="0.1" value={coteValue} onChange={e => setCoteValue(e.target.value)} autoFocus
+                      className="w-20 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-2 py-1 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
+                    <button onClick={() => saveCote(bet)} className="text-xs bg-[#CF101A] text-white px-2.5 py-1 rounded-lg font-semibold">OK</button>
+                    <button onClick={() => setEditingCoteId(null)} className="text-xs text-neutral-500 px-2 py-1">Annuler</button>
+                  </div>
+                ) : (
+                  <button
+                    disabled={!isOpen}
+                    onClick={() => { setEditingCoteId(bet.id); setCoteValue(bet.cote || 2) }}
+                    className="text-xs font-semibold text-neutral-300 bg-[#1a1a1a] px-2.5 py-1 rounded-lg disabled:opacity-60"
+                  >
+                    Cote ×{bet.cote || 2}{isOpen && ' ✏️'}
+                  </button>
+                )}
+              </div>
 
               {/* Pool display */}
               <div className="flex gap-2 mb-3">

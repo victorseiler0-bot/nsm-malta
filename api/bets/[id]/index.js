@@ -8,8 +8,21 @@ function withJoins(bet, data, userById) {
 }
 
 async function handler(req, res) {
-  if (req.method !== 'PATCH') return send(res, 405, { error: 'method not allowed' })
   const { id: betId } = req.query
+
+  if (req.method === 'DELETE') {
+    let found = false
+    await withDB((data) => {
+      const before = data.bets.length
+      data.bets = data.bets.filter((b) => b.id !== betId)
+      found = data.bets.length !== before
+      data.bet_participants = data.bet_participants.filter((p) => p.bet_id !== betId)
+    })
+    if (!found) return send(res, 404, { error: 'not found' })
+    return send(res, 200, { ok: true })
+  }
+
+  if (req.method !== 'PATCH') return send(res, 405, { error: 'method not allowed' })
   const { action } = req.body || {}
 
   let result = null
@@ -23,14 +36,16 @@ async function handler(req, res) {
       if (title !== undefined) bet.title = title
       if (description !== undefined) bet.description = description
       if (deadline !== undefined) bet.deadline = deadline
+    } else if (action === 'set_cote') {
+      const cote = Number(req.body.cote)
+      if (!(cote > 1)) { notFound = true; return }
+      bet.cote = cote
     } else if (action === 'close') {
       bet.status = 'closed'
     } else if (action === 'resolve') {
       const { result: outcome } = req.body
       const participants = data.bet_participants.filter((p) => p.bet_id === betId)
-      const forPool = participants.filter((p) => p.side === 'for').reduce((s, p) => s + p.points_wagered, 0)
-      const againstPool = participants.filter((p) => p.side === 'against').reduce((s, p) => s + p.points_wagered, 0)
-      const totalPool = forPool + againstPool
+      const cote = bet.cote || 2
 
       for (const p of participants) {
         let payout = 0
@@ -38,10 +53,7 @@ async function handler(req, res) {
           payout = p.points_wagered
         } else {
           const won = (outcome === 'win' && p.side === 'for') || (outcome === 'lose' && p.side === 'against')
-          if (won) {
-            const myPool = p.side === 'for' ? forPool : againstPool
-            payout = myPool > 0 ? Math.floor(p.points_wagered + (p.points_wagered / myPool) * (totalPool - myPool)) : p.points_wagered
-          }
+          if (won) payout = Math.floor(p.points_wagered * cote)
         }
         if (payout > 0) {
           p.points_result = payout
