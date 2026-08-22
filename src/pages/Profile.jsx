@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useUser } from '../contexts/UserContext'
 
 export default function Profile() {
@@ -13,7 +13,7 @@ export default function Profile() {
   const deleteSelf = async () => {
     setDeleting(true)
     try {
-      await supabase.from('users').delete().eq('id', currentUser.id)
+      await api.del(`/users/${currentUser.id}`)
       localStorage.removeItem('nsm_uid')
       window.location.reload()
     } catch {
@@ -28,41 +28,26 @@ export default function Profile() {
   }, [currentUser])
 
   const fetchProfile = async () => {
-    const [{ data: comps }, { data: betsData }] = await Promise.all([
-      supabase
-        .from('challenge_completions')
-        .select('challenge_id, completed_at, challenges(badge_emoji, badge_name, title, points)')
-        .eq('user_id', currentUser.id),
-      supabase
-        .from('bet_participants')
-        .select('bet_id, side, points_wagered, points_result, bets(status, result)')
-        .eq('user_id', currentUser.id),
+    const [challenges, bets] = await Promise.all([
+      api.get(`/challenges?user_id=${currentUser.id}`),
+      api.get('/bets'),
     ])
 
-    if (comps) {
-      const grouped = {}
-      comps.forEach(c => {
-        const ch = c.challenges
-        if (!ch) return
-        const key = c.challenge_id
-        if (!grouped[key]) {
-          grouped[key] = { challenge_id: key, badge_emoji: ch.badge_emoji, badge_name: ch.badge_name, title: ch.title, points: ch.points, count: 0 }
-        }
-        grouped[key].count++
-      })
-      setBadges(Object.values(grouped))
+    const badgeList = challenges
+      .filter(c => c.my_count > 0)
+      .map(c => ({ challenge_id: c.id, badge_emoji: c.badge_emoji, badge_name: c.badge_name, title: c.title, points: c.points, count: c.my_count }))
+    setBadges(badgeList)
+    const completions = badgeList.reduce((s, b) => s + b.count, 0)
 
-      let betsWon = 0, betsTotal = 0
-      if (betsData) {
-        betsData.forEach(p => {
-          if (p.bets?.status === 'resolved') {
-            betsTotal++
-            if (p.points_result > p.points_wagered) betsWon++
-          }
-        })
+    let betsWon = 0, betsTotal = 0
+    bets.forEach(b => {
+      const mine = (b.bet_participants || []).find(p => p.user_id === currentUser.id)
+      if (mine && b.status === 'resolved') {
+        betsTotal++
+        if (mine.points_result > mine.points_wagered) betsWon++
       }
-      setStats({ completions: comps.length, betsWon, betsTotal })
-    }
+    })
+    setStats({ completions, betsWon, betsTotal })
     setLoading(false)
   }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useUser } from '../contexts/UserContext'
 
 const EMOJIS = ['🏆', '🔥', '💪', '🎯', '⚡', '🚀', '👑', '💎', '🎖️', '🦁', '🐉', '🌟']
@@ -21,18 +21,11 @@ export default function Challenges() {
   useEffect(() => { fetchAll() }, [currentUser])
 
   const fetchAll = async () => {
-    const [{ data: chs }, { data: comps }] = await Promise.all([
-      supabase.from('challenges').select('*, users(name)').eq('is_active', true).order('created_at', { ascending: false }),
-      currentUser
-        ? supabase.from('challenge_completions').select('challenge_id').eq('user_id', currentUser.id)
-        : Promise.resolve({ data: [] }),
-    ])
-    if (chs) setChallenges(chs)
-    if (comps) {
-      const counts = {}
-      comps.forEach(c => { counts[c.challenge_id] = (counts[c.challenge_id] || 0) + 1 })
-      setMyCompletionCounts(counts)
-    }
+    const chs = await api.get(`/challenges?user_id=${currentUser?.id || ''}`)
+    setChallenges(chs)
+    const counts = {}
+    chs.forEach(c => { counts[c.id] = c.my_count || 0 })
+    setMyCompletionCounts(counts)
     setLoading(false)
   }
 
@@ -40,8 +33,7 @@ export default function Challenges() {
     if (!currentUser || completing) return
     setCompleting(challenge.id)
     try {
-      await supabase.from('challenge_completions').insert({ user_id: currentUser.id, challenge_id: challenge.id })
-      await supabase.rpc('add_points', { uid: currentUser.id, pts: challenge.points })
+      await api.post(`/challenges/${challenge.id}/complete`, { user_id: currentUser.id })
       setMyCompletionCounts(prev => ({ ...prev, [challenge.id]: (prev[challenge.id] || 0) + 1 }))
       await refresh()
     } finally { setCompleting(null) }
@@ -53,18 +45,9 @@ export default function Challenges() {
     if (count === 0) return
     setCancelling(challenge.id)
     try {
-      const { data } = await supabase
-        .from('challenge_completions').select('id')
-        .eq('user_id', currentUser.id).eq('challenge_id', challenge.id)
-        .order('completed_at', { ascending: false }).limit(1).single()
-      if (data) {
-        await Promise.all([
-          supabase.from('challenge_completions').delete().eq('id', data.id),
-          supabase.rpc('add_points', { uid: currentUser.id, pts: -challenge.points })
-        ])
-        setMyCompletionCounts(prev => ({ ...prev, [challenge.id]: Math.max(0, count - 1) }))
-        await refresh()
-      }
+      await api.post(`/challenges/${challenge.id}/cancel`, { user_id: currentUser.id })
+      setMyCompletionCounts(prev => ({ ...prev, [challenge.id]: Math.max(0, count - 1) }))
+      await refresh()
     } finally { setCancelling(null) }
   }
 
@@ -76,14 +59,14 @@ export default function Challenges() {
   const saveEdit = async (id) => {
     setSaving(true)
     try {
-      await supabase.from('challenges').update(editForm).eq('id', id)
+      await api.patch(`/challenges/${id}`, editForm)
       setChallenges(prev => prev.map(c => c.id === id ? { ...c, ...editForm } : c))
       setEditingId(null)
     } finally { setSaving(false) }
   }
 
   const deleteChallenge = async (id) => {
-    await supabase.from('challenges').update({ is_active: false }).eq('id', id)
+    await api.del(`/challenges/${id}`)
     setChallenges(prev => prev.filter(c => c.id !== id))
   }
 
@@ -92,8 +75,9 @@ export default function Challenges() {
     if (!form.title.trim() || !form.badge_name.trim()) return
     setSubmitting(true)
     try {
-      const { data } = await supabase.from('challenges').insert({ ...form, created_by: currentUser.id }).select('*, users(name)').single()
-      if (data) setChallenges(prev => [data, ...prev])
+      const data = await api.post('/challenges', { ...form, created_by: currentUser.id })
+      setChallenges(prev => [data, ...prev])
+      setMyCompletionCounts(prev => ({ ...prev, [data.id]: 0 }))
       setForm({ title: '', description: '', points: 10, badge_emoji: '🏆', badge_name: '' })
       setShowForm(false)
     } finally { setSubmitting(false) }

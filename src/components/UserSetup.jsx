@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useUser } from '../contexts/UserContext'
 
 export default function UserSetup() {
@@ -15,8 +15,9 @@ export default function UserSetup() {
   const [deleting, setDeleting] = useState(null)
 
   useEffect(() => {
-    supabase.from('users').select('id, name, total_points').order('total_points', { ascending: false })
-      .then(({ data }) => { if (data) setUsers(data); setLoadingUsers(false) })
+    api.get('/users')
+      .then((data) => setUsers(data))
+      .finally(() => setLoadingUsers(false))
   }, [])
 
   const loginAs = (user) => {
@@ -28,7 +29,7 @@ export default function UserSetup() {
   const deleteUser = async (user) => {
     setDeleting(user.id)
     try {
-      await supabase.from('users').delete().eq('id', user.id)
+      await api.del(`/users/${user.id}`)
       setUsers(prev => prev.filter(u => u.id !== user.id))
       setConfirmDelete(null)
     } finally {
@@ -44,7 +45,7 @@ export default function UserSetup() {
     try {
       await register(name)
     } catch (err) {
-      if (err.code === '23505') setError('Ce nom est déjà pris — clique dessus pour te connecter.')
+      if (err.status === 409) setError('Ce nom est déjà pris — clique dessus pour te connecter.')
       else setError(err.message || 'Erreur, réessaie.')
       setSubmitting(false)
     }

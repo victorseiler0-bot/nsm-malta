@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 
 const UserContext = createContext(null)
 
@@ -8,19 +8,16 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const id = localStorage.getItem('nsm_uid')
-    if (!id) { setLoading(false); return }
-    supabase.from('users').select('*').eq('id', id).single()
-      .then(({ data }) => {
-        if (data) setCurrentUser(data)
-        setLoading(false)
-      })
+    const uid = localStorage.getItem('nsm_uid')
+    if (!uid) { setLoading(false); return }
+    api.get(`/users/${uid}`)
+      .then((data) => setCurrentUser(data))
+      .catch(() => localStorage.removeItem('nsm_uid'))
+      .finally(() => setLoading(false))
   }, [])
 
   const register = async (name) => {
-    const trimmed = name.trim()
-    const { data, error } = await supabase.from('users').insert({ name: trimmed }).select().single()
-    if (error) throw error
+    const data = await api.post('/users', { name: name.trim() })
     localStorage.setItem('nsm_uid', data.id)
     setCurrentUser(data)
     return data
@@ -28,8 +25,10 @@ export function UserProvider({ children }) {
 
   const refresh = useCallback(async () => {
     if (!currentUser) return
-    const { data } = await supabase.from('users').select('*').eq('id', currentUser.id).single()
-    if (data) setCurrentUser(data)
+    try {
+      const data = await api.get(`/users/${currentUser.id}`)
+      setCurrentUser(data)
+    } catch { /* keep stale user on transient error */ }
   }, [currentUser])
 
   return (

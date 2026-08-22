@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useUser } from '../contexts/UserContext'
 
 const STATUS_LABEL = { open: 'Ouvert', closed: 'Mises fermées', resolved: 'Terminé', cancelled: 'Annulé' }
@@ -22,18 +22,16 @@ export default function Bets() {
   useEffect(() => { fetchAll() }, [currentUser])
 
   const fetchAll = async () => {
-    const [{ data: betsData }, { data: partsData }] = await Promise.all([
-      supabase.from('bets').select('*, users(name), bet_participants(*, users(name))').order('created_at', { ascending: false }),
-      currentUser
-        ? supabase.from('bet_participants').select('bet_id, side, points_wagered').eq('user_id', currentUser.id)
-        : Promise.resolve({ data: [] }),
-    ])
-    if (betsData) setBets(betsData)
-    if (partsData) {
-      const map = {}
-      partsData.forEach(p => { map[p.bet_id] = p })
-      setMyParticipations(map)
+    const betsData = await api.get('/bets')
+    setBets(betsData)
+    const map = {}
+    if (currentUser) {
+      betsData.forEach(b => {
+        const mine = (b.bet_participants || []).find(p => p.user_id === currentUser.id)
+        if (mine) map[b.id] = mine
+      })
     }
+    setMyParticipations(map)
     setLoading(false)
   }
 
@@ -42,10 +40,10 @@ export default function Bets() {
     if (!form.title.trim()) return
     setSubmitting(true)
     try {
-      const { data } = await supabase.from('bets')
-        .insert({ title: form.title.trim(), description: form.description.trim() || null, creator_id: currentUser.id, deadline: form.deadline || null })
-        .select('*, users(name), bet_participants(*, users(name))').single()
-      if (data) setBets(prev => [data, ...prev])
+      const data = await api.post('/bets', {
+        title: form.title.trim(), description: form.description.trim() || null, creator_id: currentUser.id, deadline: form.deadline || null,
+      })
+      setBets(prev => [data, ...prev])
       setForm({ title: '', description: '', deadline: '' })
       setShowForm(false)
     } finally { setSubmitting(false) }
@@ -55,47 +53,20 @@ export default function Bets() {
     if (!currentUser || myParticipations[bet.id]) return
     if (currentUser.total_points < joinData.amount) { alert(`Tu n'as que ${currentUser.total_points} points`); return }
     try {
-      await Promise.all([
-        supabase.from('bet_participants').insert({ bet_id: bet.id, user_id: currentUser.id, side: joinData.side, points_wagered: joinData.amount }),
-        supabase.rpc('add_points', { uid: currentUser.id, pts: -joinData.amount }),
-      ])
+      await api.post(`/bets/${bet.id}/join`, { user_id: currentUser.id, side: joinData.side, amount: joinData.amount })
       await Promise.all([fetchAll(), refresh()])
       setJoiningBet(null)
     } catch { alert('Erreur en rejoignant le pari') }
   }
 
   const closeBet = async (bet) => {
-    await supabase.from('bets').update({ status: 'closed' }).eq('id', bet.id)
+    await api.patch(`/bets/${bet.id}`, { action: 'close' })
     setBets(prev => prev.map(b => b.id === bet.id ? { ...b, status: 'closed' } : b))
   }
 
   const resolveBet = async (bet, result) => {
     try {
-      const participants = bet.bet_participants || []
-      const forPool = participants.filter(p => p.side === 'for').reduce((s, p) => s + p.points_wagered, 0)
-      const againstPool = participants.filter(p => p.side === 'against').reduce((s, p) => s + p.points_wagered, 0)
-      const totalPool = forPool + againstPool
-      const updates = []
-      for (const p of participants) {
-        let payout = 0
-        if (result === 'null') {
-          payout = p.points_wagered
-        } else {
-          const won = (result === 'win' && p.side === 'for') || (result === 'lose' && p.side === 'against')
-          if (won) {
-            const myPool = p.side === 'for' ? forPool : againstPool
-            payout = myPool > 0 ? Math.floor(p.points_wagered + (p.points_wagered / myPool) * (totalPool - myPool)) : p.points_wagered
-          }
-        }
-        if (payout > 0) {
-          updates.push(supabase.rpc('add_points', { uid: p.user_id, pts: payout }))
-          updates.push(supabase.from('bet_participants').update({ points_result: payout }).eq('id', p.id))
-        }
-      }
-      await Promise.all([
-        supabase.from('bets').update({ status: 'resolved', result, resolved_at: new Date().toISOString() }).eq('id', bet.id),
-        ...updates,
-      ])
+      await api.patch(`/bets/${bet.id}`, { action: 'resolve', result })
       await Promise.all([fetchAll(), refresh()])
     } catch { alert('Erreur lors de la résolution') }
   }
@@ -103,7 +74,7 @@ export default function Bets() {
   const saveEdit = async (id) => {
     setSaving(true)
     try {
-      await supabase.from('bets').update({ title: editForm.title, description: editForm.description || null, deadline: editForm.deadline || null }).eq('id', id)
+      await api.patch(`/bets/${id}`, { action: 'edit', title: editForm.title, description: editForm.description || null, deadline: editForm.deadline || null })
       setBets(prev => prev.map(b => b.id === id ? { ...b, ...editForm, description: editForm.description || null, deadline: editForm.deadline || null } : b))
       setEditingId(null)
     } finally { setSaving(false) }

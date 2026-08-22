@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useUser } from '../contexts/UserContext'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -15,16 +15,13 @@ export default function Home() {
 
   useEffect(() => {
     fetchLeaderboard()
-    const channel = supabase
-      .channel('leaderboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, fetchLeaderboard)
-      .subscribe()
-    return () => supabase.removeChannel(channel)
+    const interval = setInterval(fetchLeaderboard, 20000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchLeaderboard = async () => {
-    const { data } = await supabase.from('users').select('*').order('total_points', { ascending: false })
-    if (data) setUsers(data)
+    const data = await api.get('/users')
+    setUsers(data)
     setLoading(false)
   }
 
@@ -49,10 +46,7 @@ export default function Home() {
     setGifting(true)
     setGiftError('')
     try {
-      await Promise.all([
-        supabase.rpc('add_points', { uid: currentUser.id, pts: -amt }),
-        supabase.rpc('add_points', { uid: giftTarget.id, pts: amt }),
-      ])
+      await api.post('/gift', { from: currentUser.id, to: giftTarget.id, amount: amt })
       await Promise.all([fetchLeaderboard(), refresh()])
       setGiftTarget(null)
     } catch {
