@@ -1,0 +1,22 @@
+name: Keep Supabase project awake
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldm1zbGRxcGVjenN0dXBsZXRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NTI5NDIsImV4cCI6MjA5NDQyODk0Mn0.OXEZkuJXGFxswWI3HIXbPR0rlZHR6MzEbS0kHWwWrmA
+        run: |
+          code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+            "https://sevmsldqpeczstupletf.supabase.co/rest/v1/users?select=id&limit=1" \
+            -H "apikey: $ANON_KEY" \
+            -H "Authorization: Bearer $ANON_KEY")
+          echo "HTTP $code"
+          cat /tmp/resp.json
+          if [ "$code" -ge 400 ]; then exit 1; fi
