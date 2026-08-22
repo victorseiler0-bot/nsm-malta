@@ -19,7 +19,7 @@ async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { title, description, creator_id, deadline, cote } = req.body || {}
+    const { title, description, creator_id, cote_for, cote_against } = req.body || {}
     if (!title?.trim() || !creator_id) return send(res, 400, { error: 'missing fields' })
 
     let created = null
@@ -30,8 +30,8 @@ async function handler(req, res) {
         title: title.trim(),
         description: description?.trim() || null,
         creator_id,
-        deadline: deadline || null,
-        cote: Number(cote) > 1 ? Number(cote) : 2,
+        cote_for: Number(cote_for) > 1 ? Number(cote_for) : 2,
+        cote_against: Number(cote_against) > 1 ? Number(cote_against) : 2,
         status: 'open',
         result: null,
         resolved_at: null,
