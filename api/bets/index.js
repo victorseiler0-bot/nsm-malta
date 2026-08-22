@@ -19,7 +19,7 @@ async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { title, description, creator_id, choice1_label, choice2_label, cote_for, cote_against, cote_null } = req.body || {}
+    const { title, description, creator_id, choice1_label, choice2_label, cote_for, cote_against, cote_null, badge_emoji, badge_name } = req.body || {}
     if (!title?.trim() || !creator_id) return send(res, 400, { error: 'missing fields' })
 
     let created = null
@@ -32,6 +32,8 @@ async function handler(req, res) {
         creator_id,
         choice1_label: choice1_label?.trim() || 'Choix 1',
         choice2_label: choice2_label?.trim() || 'Choix 2',
+        badge_emoji: badge_emoji || '🎲',
+        badge_name: badge_name?.trim() || title.trim(),
         cote_for: Number(cote_for) > 1 ? Number(cote_for) : 2,
         cote_against: Number(cote_against) > 1 ? Number(cote_against) : 2,
         cote_null: Number(cote_null) > 1 ? Number(cote_null) : 2,

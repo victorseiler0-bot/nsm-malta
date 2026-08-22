@@ -106,7 +106,6 @@ export default function Challenges() {
         <form onSubmit={createChallenge} className="bg-[#141414] border border-[#252525] rounded-2xl p-4 mb-5 space-y-3">
           <p className="text-white font-semibold text-sm">Nouveau défi</p>
           <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Titre..." className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
-          <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description (optionnel)..." className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
           <div className="grid grid-cols-2 gap-2">
             <input type="number" min="-9999" max="9999" value={form.points} onChange={e => setForm({ ...form, points: parseInt(e.target.value) || 0 })} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
             <input value={form.badge_name} onChange={e => setForm({ ...form, badge_name: e.target.value })} placeholder="Nom badge" className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />

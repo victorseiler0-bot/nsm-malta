@@ -32,11 +32,13 @@ async function handler(req, res) {
     if (!bet) { notFound = true; return }
 
     if (action === 'edit') {
-      const { title, description, choice1_label, choice2_label } = req.body
+      const { title, description, choice1_label, choice2_label, badge_emoji, badge_name } = req.body
       if (title !== undefined) bet.title = title
       if (description !== undefined) bet.description = description
       if (choice1_label !== undefined) bet.choice1_label = choice1_label?.trim() || 'Choix 1'
       if (choice2_label !== undefined) bet.choice2_label = choice2_label?.trim() || 'Choix 2'
+      if (badge_emoji !== undefined) bet.badge_emoji = badge_emoji
+      if (badge_name !== undefined) bet.badge_name = badge_name?.trim() || bet.title
     } else if (action === 'set_cote') {
       const cote = Number(req.body.cote)
       const side = req.body.side

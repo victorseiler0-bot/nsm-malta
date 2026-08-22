@@ -4,7 +4,8 @@ import { useUser } from '../contexts/UserContext'
 
 export default function Profile() {
   const { currentUser } = useUser()
-  const [badges, setBadges] = useState([])
+  const [defiBadges, setDefiBadges] = useState([])
+  const [betBadges, setBetBadges] = useState([])
   const [stats, setStats] = useState({ completions: 0, betsWon: 0, betsTotal: 0 })
   const [loading, setLoading] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -28,8 +29,9 @@ export default function Profile() {
   }, [currentUser])
 
   const fetchProfile = async () => {
-    const { badges, stats } = await api.get(`/profile/${currentUser.id}`)
-    setBadges(badges)
+    const { defiBadges, betBadges, stats } = await api.get(`/profile/${currentUser.id}`)
+    setDefiBadges(defiBadges)
+    setBetBadges(betBadges)
     setStats(stats)
     setLoading(false)
   }
@@ -68,19 +70,19 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Badges */}
-      <div>
+      {/* Badges Défis */}
+      <div className="mb-6">
         <h3 className="text-white font-bold text-base mb-3">
-          Badges {badges.length > 0 && <span className="text-neutral-500 font-normal text-sm">{badges.length}</span>}
+          Badges défis {defiBadges.length > 0 && <span className="text-neutral-500 font-normal text-sm">{defiBadges.length}</span>}
         </h3>
 
         {loading ? (
           <div className="grid grid-cols-3 gap-2">
-            {[...Array(6)].map((_, i) => <div key={i} className="h-28 bg-[#141414] rounded-2xl animate-pulse" />)}
+            {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-[#141414] rounded-2xl animate-pulse" />)}
           </div>
-        ) : badges.length > 0 ? (
+        ) : defiBadges.length > 0 ? (
           <div className="grid grid-cols-3 gap-2">
-            {badges.map(b => (
+            {defiBadges.map(b => (
               <div key={b.challenge_id} className="bg-[#141414] border border-[#1e1e1e] rounded-2xl p-3 flex flex-col items-center gap-1 relative">
                 <span className="text-3xl">{b.badge_emoji}</span>
                 <p className="text-white text-xs font-semibold text-center leading-tight">{b.badge_name}</p>
@@ -97,9 +99,42 @@ export default function Profile() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 text-neutral-600">
-            <div className="text-4xl mb-3">🏅</div>
-            <p>Complète des défis pour gagner des badges !</p>
+          <div className="text-center py-8 text-neutral-600">
+            <div className="text-3xl mb-2">🏅</div>
+            <p className="text-sm">Complète des défis pour gagner des badges !</p>
+          </div>
+        )}
+      </div>
+
+      {/* Badges Paris */}
+      <div>
+        <h3 className="text-white font-bold text-base mb-3">
+          Badges paris {betBadges.length > 0 && <span className="text-neutral-500 font-normal text-sm">{betBadges.length}</span>}
+        </h3>
+
+        {loading ? (
+          <div className="grid grid-cols-3 gap-2">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-[#141414] rounded-2xl animate-pulse" />)}
+          </div>
+        ) : betBadges.length > 0 ? (
+          <div className="grid grid-cols-3 gap-2">
+            {betBadges.map(b => (
+              <div key={b.bet_id} className="bg-[#141414] border border-[#1e1e1e] rounded-2xl p-3 flex flex-col items-center gap-1 relative">
+                <span className="text-3xl">{b.badge_emoji}</span>
+                <p className="text-white text-xs font-semibold text-center leading-tight">{b.badge_name}</p>
+                <p className="text-neutral-600 text-[10px] text-center leading-tight line-clamp-2">{b.title}</p>
+                {b.count > 1 && (
+                  <span className="absolute top-2 right-2 bg-[#CF101A] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                    ×{b.count}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-neutral-600">
+            <div className="text-3xl mb-2">🎲</div>
+            <p className="text-sm">Gagne des paris pour gagner des badges !</p>
           </div>
         )}
       </div>

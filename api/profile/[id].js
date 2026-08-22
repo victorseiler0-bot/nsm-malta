@@ -29,19 +29,36 @@ async function handler(req, res) {
       grouped[c.challenge_id].count++
     })
 
+  const betGrouped = {}
   let betsWon = 0
   let betsTotal = 0
   data.bet_participants
     .filter((p) => p.user_id === userId)
     .forEach((p) => {
       const bet = betById[p.bet_id]
-      if (bet?.status === 'resolved') {
-        betsTotal++
-        if (p.points_result > p.points_wagered) betsWon++
+      if (bet?.status !== 'resolved') return
+      betsTotal++
+      const won = p.points_result > p.points_wagered
+      if (won) {
+        betsWon++
+        if (!betGrouped[p.bet_id]) {
+          betGrouped[p.bet_id] = {
+            bet_id: p.bet_id,
+            badge_emoji: bet.badge_emoji || '🎲',
+            badge_name: bet.badge_name || bet.title,
+            title: bet.title,
+            count: 0,
+          }
+        }
+        betGrouped[p.bet_id].count++
       }
     })
 
-  send(res, 200, { badges: Object.values(grouped), stats: { completions, betsWon, betsTotal } })
+  send(res, 200, {
+    defiBadges: Object.values(grouped),
+    betBadges: Object.values(betGrouped),
+    stats: { completions, betsWon, betsTotal },
+  })
 }
 
 export default safe(handler)

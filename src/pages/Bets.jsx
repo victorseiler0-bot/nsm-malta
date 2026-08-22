@@ -4,8 +4,9 @@ import { useUser } from '../contexts/UserContext'
 
 const STATUS_LABEL = { open: 'Ouvert', closed: 'Mises fermées', resolved: 'Terminé', cancelled: 'Annulé' }
 const STATUS_COLOR = { open: 'text-green-400', closed: 'text-orange-400', resolved: 'text-neutral-400', cancelled: 'text-neutral-600' }
+const EMOJIS = ['🎲', '🏆', '🔥', '💪', '🎯', '⚡', '🚀', '👑', '💎', '🦁', '🐉', '🌟']
 
-const emptyForm = { title: '', description: '', choice1_label: '', choice2_label: '', cote_for: 2, cote_against: 2, cote_null: 2 }
+const emptyForm = { title: '', description: '', choice1_label: '', choice2_label: '', cote_for: 2, cote_against: 2, cote_null: 2, badge_emoji: '🎲', badge_name: '' }
 
 export default function Bets() {
   const { currentUser, refresh } = useUser()
@@ -55,6 +56,8 @@ export default function Bets() {
         creator_id: currentUser.id,
         choice1_label: form.choice1_label.trim() || null,
         choice2_label: form.choice2_label.trim() || null,
+        badge_emoji: form.badge_emoji,
+        badge_name: form.badge_name.trim() || null,
         cote_for: Number(form.cote_for) || 2,
         cote_against: Number(form.cote_against) || 2,
         cote_null: Number(form.cote_null) || 2,
@@ -114,6 +117,8 @@ export default function Bets() {
         description: editForm.description || null,
         choice1_label: editForm.choice1_label,
         choice2_label: editForm.choice2_label,
+        badge_emoji: editForm.badge_emoji,
+        badge_name: editForm.badge_name,
       })
       setBets(prev => prev.map(b => b.id === id ? { ...b, ...editForm } : b))
       setEditingId(null)
@@ -155,6 +160,13 @@ export default function Bets() {
           <div>
             <label className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1 block">Cote nul</label>
             <input type="number" min="1.1" step="0.1" value={form.cote_null} onChange={e => setForm({ ...form, cote_null: e.target.value })} className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#CF101A]" />
+          </div>
+          <input value={form.badge_name} onChange={e => setForm({ ...form, badge_name: e.target.value })} placeholder="Nom badge (optionnel)" className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-[#CF101A]" />
+          <div className="flex flex-wrap gap-2">
+            {EMOJIS.map(e => (
+              <button key={e} type="button" onClick={() => setForm({ ...form, badge_emoji: e })}
+                className={`text-2xl w-10 h-10 rounded-xl flex items-center justify-center transition-all ${form.badge_emoji === e ? 'bg-[#CF101A]/20 ring-2 ring-[#CF101A]' : 'bg-[#1a1a1a]'}`}>{e}</button>
+            ))}
           </div>
           <button type="submit" disabled={submitting || !form.title.trim()} className="w-full bg-[#CF101A] text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-40 active:scale-95 transition-all">
             {submitting ? 'Création...' : 'Lancer le pari'}
@@ -223,15 +235,18 @@ export default function Bets() {
                 </div>
               ) : (
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex-1">
-                    <p className="text-white font-semibold text-sm leading-tight">{bet.title}</p>
-                    {bet.description && <p className="text-neutral-500 text-xs mt-0.5">{bet.description}</p>}
-                    <span className="text-neutral-600 text-xs">par {bet.users?.name}</span>
+                  <div className="flex-1 flex items-start gap-2">
+                    <span className="text-2xl leading-none mt-0.5">{bet.badge_emoji || '🎲'}</span>
+                    <div>
+                      <p className="text-white font-semibold text-sm leading-tight">{bet.title}</p>
+                      {bet.description && <p className="text-neutral-500 text-xs mt-0.5">{bet.description}</p>}
+                      <span className="text-neutral-600 text-xs">par {bet.users?.name}</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1">
                     {isCreator && !isResolved && (
                       <>
-                        <button onClick={() => { setEditingId(bet.id); setEditForm({ title: bet.title, description: bet.description || '', choice1_label: bet.choice1_label || '', choice2_label: bet.choice2_label || '' }) }}
+                        <button onClick={() => { setEditingId(bet.id); setEditForm({ title: bet.title, description: bet.description || '', choice1_label: bet.choice1_label || '', choice2_label: bet.choice2_label || '', badge_emoji: bet.badge_emoji || '🎲', badge_name: bet.badge_name || '' }) }}
                           className="text-neutral-600 hover:text-neutral-400 text-sm p-1 transition-colors">✏️</button>
                         <button onClick={() => deleteBet(bet)} disabled={deletingId === bet.id}
                           className="text-neutral-600 hover:text-red-400 text-sm p-1 transition-colors disabled:opacity-40">🗑️</button>
