@@ -1,6 +1,6 @@
-import { withDB, send } from '../../_lib/store.js'
+import { withDB, send, safe } from '../../_lib/store.js'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' })
   const { id: challengeId } = req.query
   const { user_id } = req.body || {}
@@ -26,3 +26,5 @@ export default async function handler(req, res) {
   if (!result) return send(res, 404, { error: 'not found' })
   return send(res, 200, result)
 }
+
+export default safe(handler)

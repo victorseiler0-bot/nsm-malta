@@ -1,4 +1,4 @@
-import { withDB, readDB, id, now, send } from '../_lib/store.js'
+import { withDB, readDB, id, now, send, safe } from '../_lib/store.js'
 
 function withJoins(bet, data, userById) {
   const participants = data.bet_participants
@@ -7,7 +7,7 @@ function withJoins(bet, data, userById) {
   return { ...bet, users: { name: userById[bet.creator_id]?.name || null }, bet_participants: participants }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === 'GET') {
     const { data } = await readDB()
     const userById = Object.fromEntries(data.users.map((u) => [u.id, u]))
@@ -46,3 +46,5 @@ export default async function handler(req, res) {
 
   return send(res, 405, { error: 'method not allowed' })
 }
+
+export default safe(handler)

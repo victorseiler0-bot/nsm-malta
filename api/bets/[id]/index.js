@@ -1,4 +1,4 @@
-import { withDB, now, send } from '../../_lib/store.js'
+import { withDB, now, send, safe } from '../../_lib/store.js'
 
 function withJoins(bet, data, userById) {
   const participants = data.bet_participants
@@ -7,7 +7,7 @@ function withJoins(bet, data, userById) {
   return { ...bet, users: { name: userById[bet.creator_id]?.name || null }, bet_participants: participants }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'PATCH') return send(res, 405, { error: 'method not allowed' })
   const { id: betId } = req.query
   const { action } = req.body || {}
@@ -65,3 +65,5 @@ export default async function handler(req, res) {
   if (notFound || !result) return send(res, 404, { error: 'not found' })
   return send(res, 200, result)
 }
+
+export default safe(handler)

@@ -1,6 +1,6 @@
-import { withDB, id, send } from '../../_lib/store.js'
+import { withDB, id, send, safe } from '../../_lib/store.js'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' })
   const { id: betId } = req.query
   const { user_id, side, amount } = req.body || {}
@@ -26,3 +26,5 @@ export default async function handler(req, res) {
 
   return send(res, status, result)
 }
+
+export default safe(handler)

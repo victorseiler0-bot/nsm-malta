@@ -1,6 +1,6 @@
-import { withDB, readDB, id, now, send } from '../_lib/store.js'
+import { withDB, readDB, id, now, send, safe } from '../_lib/store.js'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === 'GET') {
     const { data } = await readDB()
     const users = data.users.slice().sort((a, b) => b.total_points - a.total_points)
@@ -25,3 +25,5 @@ export default async function handler(req, res) {
 
   return send(res, 405, { error: 'method not allowed' })
 }
+
+export default safe(handler)

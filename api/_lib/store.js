@@ -10,27 +10,26 @@ function emptyDB() {
 
 export async function readDB() {
   const result = await get(DB_PATH, { access: 'private', useCache: false })
-  if (!result) return { data: emptyDB(), etag: null }
+  if (!result) return { data: emptyDB() }
   const raw = await text(result.stream)
-  return { data: JSON.parse(raw), etag: result.blob.etag }
+  return { data: JSON.parse(raw) }
 }
 
-async function writeDB(data, etag) {
+async function writeDB(data) {
   const body = JSON.stringify(data)
-  const opts = { access: 'private', allowOverwrite: true, contentType: 'application/json' }
-  if (etag) opts.ifMatch = etag
-  return put(DB_PATH, body, opts)
+  return put(DB_PATH, body, { access: 'private', allowOverwrite: true, contentType: 'application/json' })
 }
 
 // Reads the DB, lets `mutate` change it in place, writes it back.
-// Retries the whole read-mutate-write cycle if a concurrent write raced us.
+// No locking: this is a small trusted friend group, true simultaneous
+// writes are rare enough that a last-write-wins retry is good enough.
 export async function withDB(mutate) {
   let lastErr
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const { data, etag } = await readDB()
-    const result = await mutate(data)
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      await writeDB(data, etag)
+      const { data } = await readDB()
+      const result = await mutate(data)
+      await writeDB(data)
       return result
     } catch (err) {
       lastErr = err
@@ -53,4 +52,16 @@ export function userPublic(u) {
 
 export function send(res, status, body) {
   res.status(status).json(body)
+}
+
+// Wraps a handler so a thrown error becomes a JSON 500 instead of an
+// opaque Vercel crash page the frontend can't parse.
+export function safe(fn) {
+  return async (req, res) => {
+    try {
+      await fn(req, res)
+    } catch (err) {
+      send(res, 500, { error: err.message || 'server error' })
+    }
+  }
 }
