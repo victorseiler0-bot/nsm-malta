@@ -28,26 +28,9 @@ export default function Profile() {
   }, [currentUser])
 
   const fetchProfile = async () => {
-    const [challenges, bets] = await Promise.all([
-      api.get(`/challenges?user_id=${currentUser.id}`),
-      api.get('/bets'),
-    ])
-
-    const badgeList = challenges
-      .filter(c => c.my_count > 0)
-      .map(c => ({ challenge_id: c.id, badge_emoji: c.badge_emoji, badge_name: c.badge_name, title: c.title, points: c.points, count: c.my_count }))
-    setBadges(badgeList)
-    const completions = badgeList.reduce((s, b) => s + b.count, 0)
-
-    let betsWon = 0, betsTotal = 0
-    bets.forEach(b => {
-      const mine = (b.bet_participants || []).find(p => p.user_id === currentUser.id)
-      if (mine && b.status === 'resolved') {
-        betsTotal++
-        if (mine.points_result > mine.points_wagered) betsWon++
-      }
-    })
-    setStats({ completions, betsWon, betsTotal })
+    const { badges, stats } = await api.get(`/profile/${currentUser.id}`)
+    setBadges(badges)
+    setStats(stats)
     setLoading(false)
   }
 
